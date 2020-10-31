@@ -2,6 +2,29 @@
 
 # Release notes
 **Contents**<br>
+[3.0.1](#301)<br>
+[2.13.2](#2132)<br>
+[2.13.1](#2131)<br>
+[2.13.0](#2130)<br>
+[2.12.4](#2124)<br>
+[2.12.3](#2123)<br>
+[2.12.2](#2122)<br>
+[2.12.1](#2121)<br>
+[2.12.0](#2120)<br>
+[2.11.3](#2113)<br>
+[2.11.2](#2112)<br>
+[2.11.1](#2111)<br>
+[2.11.0](#2110)<br>
+[2.10.2](#2102)<br>
+[2.10.1](#2101)<br>
+[2.10.0](#2100)<br>
+[2.9.2](#292)<br>
+[2.9.1](#291)<br>
+[2.9.0](#290)<br>
+[2.8.0](#280)<br>
+[2.7.2](#272)<br>
+[2.7.1](#271)<br>
+[2.7.0](#270)<br>
 [2.6.1](#261)<br>
 [2.6.0](#260)<br>
 [2.5.0](#250)<br>
@@ -19,6 +42,512 @@
 [2.0.1](#201)<br>
 [Older versions](#older-versions)<br>
 [Even Older versions](#even-older-versions)<br>
+
+
+## 3.0.1 (in progress)
+
+
+**Catch2 now uses statically compiled library as its distribution model.
+This also means that to get all of Catch2's functionality in a test file,
+you have to include multiple headers.**
+
+For quick'n'dirty migration, you can replace the old `#include <catch2/catch.hpp>`
+with `#include <catch2/catch_all.hpp>`. This is a (one of) convenience
+header(s) that brings in _all_ of headers in Catch2. By doing this,
+you should be able to migrate instantly, but at the cost of (significantly)
+increased compilation times. You should prefer piecemeal including
+headers that are actually required by your test code.
+
+The basic set of functionality (`TEST_CASE`, `SECTION`, `REQUIRE`) is in
+`catch2/catch_test_macros.hpp`. Matchers are in `matchers` subfolder,
+generators in `generators` subfolder, and so on.
+
+Note that documentation has not yet been updated to account for the
+new design.
+
+
+### FAQ
+
+* Why is Catch2 moving to separate headers?
+  * The short answer is future extensibility and scalability. The long answer is complex and can be found on my blog, but at the most basic level, it is that providing single-header distribution is at odds with providing variety of useful features. When Catch2 was distributed in a single header, adding a new Matcher would cause overhead for everyone, but was useful only to a subset of users. This meant that the barrier to entry for new Matchers/Generators/etc is high in single header model, but much smaller in the new model.
+* Will Catch2 again distribute single-header version in the future?
+  * No. But we do provide sqlite-style amalgamated distribution option. This means that you can download just 1 .cpp file and 1 header and place them next to your own sources. However, doing this has downsides similar to using the `catch_all.hpp` header.
+* Why the big breaking change caused by replacing `catch.hpp` with `catch_all.hpp`?
+  * The convenience header `catch_all.hpp` exists for two reasons. One of them is to provide a way for quick migration from Catch2, the second one is to provide a simple way to test things with Catch2. Using it for migration has one drawback in that it is **big**. This means that including it _will_ cause significant compile time drag, and so using it to migrate should be a concious decision by the user, not something they can just stumble into unknowingly.
+
+
+### (Potentially) Breaking changes
+* **Catch2 now uses statically compiled library as its distribution model**
+  * **Including `catch.hpp` no longer works**
+* `ANON_TEST_CASE` has been removed, use `TEST_CASE` with no arguments instead (#1220)
+* `--list*` commands no longer have non-zero return code (#1410)
+* `--list-test-names-only` has been removed (#1190)
+  * You should use verbosity-modifiers for `--list-tests` instead
+* `--list*` commands are now piped through the reporters
+  * The top-level reporter interface provides default implementation that works just as the old one
+  * XmlReporter outputs a machine-parseable XML
+* `TEST_CASE` description support has been removed
+  * If the second argument has text outside tags, the text will be ignored.
+* Hidden test cases are no longer included just because they don't match an exclusion tag
+  * Previously, a `TEST_CASE("A", "[.foo]")` would be included by asking for `~[bar]`.
+* `PredicateMatcher` is no longer type erased.
+  * This means that the type of the provided predicate is part of the `PredicateMatcher`'s type
+* `SectionInfo` no longer contains section description as a member (#1319)
+  * You can still write `SECTION("ShortName", "Long and wordy description")`, but the description is thrown away
+  * The description type now must be a `const char*` or be implicitly convertible to it
+* The `[!hide]` tag has been removed.
+  * Use `[.]` or `[.foo]` instead.
+* Lvalues of composed matchers cannot be composed further
+* Uses of `REGISTER_TEST_CASE` macro need to be followed by a semicolon
+  * This does not change `TEST_CASE` and friends in any way
+* `IStreamingReporter::IsMulti` member function was removed
+  * This is _very_ unlikely to actually affect anyone, as it was default-implemented in the interface, and only used internally
+* Various classes not designed for user-extension have been made final
+  * `ListeningReporter` is now `final`
+  * Concrete Matchers (e.g. `UnorderedEquals` vector matcher) are now `final`
+  * All Generators are now `final`
+* Matcher namespacing has been redone
+  * Matcher types are no longer in deeply nested namespaces
+  * Matcher factory functions are no longer brought into `Catch` namespace
+  * This means that all public-facing matcher-related functionality is now in `Catch::Matchers` namespace
+* Defining `CATCH_CONFIG_MAIN` will no longer create main in that TU.
+  * Link with `libCatch2Main.a`, or the proper CMake/pkg-config target
+  * If you want to write custom main, include `catch2/catch_session.hpp`
+* `CATCH_CONFIG_EXTERNAL_INTERFACES` has been removed.
+  * You should instead include the appropriate headers as needed.
+* `CATCH_CONFIG_IMPL` has been removed.
+  * The implementation is now compiled into a static library.
+* Event Listener interface has changed
+  * `TestEventListenerBase` was renamed to `EventListenerBase`
+  * `EventListenerBase` now directly derives from `IStreamingReporter`, instead of deriving from `StreamingReporterBase`
+
+
+
+### Improvements
+* Matchers have been extended with the ability to use different signatures of `match` (#1307, #1553, #1554, #1843)
+  * This includes having templated `match` member function
+  * See the [rewritten Matchers documentation](matchers.md#top) for details
+  * Catch2 currently provides _some_ generic matchers, but there should be more before final release of v3
+    * So far, `IsEmpty`, `SizeIs`, and `Contains` are provided.
+    * At least `ElementsAre` and `UnorderedElementsAre` are planned.
+* Some runtime performance improvements
+* Significant compilation time improvements
+  * including `catch_test_macros.hpp` is 80% cheaper than including `catch.hpp`
+
+
+### Fixes
+* The `INFO` macro no longer contains superfluous semicolon (#1456)
+* The `--list*` family of command line flags now return 0 on success (#1410, #1146)
+
+
+### Other changes
+* `CATCH_CONFIG_DISABLE_MATCHERS` no longer exists.
+  * If you do not want to use Matchers in a TU, do not include their header.
+* `CATCH_CONFIG_ENABLE_CHRONO_STRINGMAKER` no longer exists.
+  * `StringMaker` specializations for `<chrono>` are always provided
+* Catch2's CMake now provides 2 targets, `Catch2` and `Catch2WithMain`.
+  * `Catch2` is the statically compiled implementation by itself
+  * `Catch2WithMain` also links in the default main
+* Catch2's pkg-config integration also provides 2 packages
+  * `catch2` is the statically compiled implementation by itself
+  * `catch2-with-main` also links in the default main
+
+
+
+## 2.13.2
+
+### Improvements
+* Implemented workaround for AppleClang shadowing bug (#2030)
+* Implemented workaround for NVCC ICE (#2005, #2027)
+
+### Fixes
+* Fixed detection of `std::uncaught_exceptions` support under non-msvc platforms (#2021)
+* Fixed the experimental stdout/stderr capture under Windows (#2013)
+
+### Miscellaneous
+* `catch_discover_tests` has been improved significantly (#2023, #2039)
+  * You can now specify which reporter should be used
+  * You can now modify where the output will be written
+  * `WORKING_DIRECTORY` setting is respected
+* `ParseAndAddCatchTests` now supports `TEMPLATE_TEST_CASE` macros (#2031)
+* Various documentation fixes and improvements (#2022, #2028, #2034)
+
+
+## 2.13.1
+
+### Improvements
+* `ParseAndAddCatchTests` handles CMake v3.18.0 correctly (#1984)
+* Improved autodetection of `std::byte` (#1992)
+* Simplified implementation of templated test cases (#2007)
+  * This should have a tiny positive effect on its compilation throughput
+
+### Fixes
+* Automatic stringification of ranges handles sentinel ranges properly (#2004)
+
+
+## 2.13.0
+
+### Improvements
+* `GENERATE` can now follow a `SECTION` at the same level of nesting (#1938)
+  * The `SECTION`(s) before the `GENERATE` will not be run multiple times, the following ones will.
+* Added `-D`/`--min-duration` command line flag (#1910)
+  * If a test takes longer to finish than the provided value, its name and duration will be printed.
+  * This flag is overriden by setting `-d`/`--duration`.
+
+### Fixes
+* `TAPReporter` no longer skips successful assertions (#1983)
+
+
+## 2.12.4
+
+### Improvements
+* Added support for MacOS on ARM (#1971)
+
+
+## 2.12.3
+
+### Fixes
+* `GENERATE` nested in a for loop no longer creates multiple generators (#1913)
+* Fixed copy paste error breaking `TEMPLATE_TEST_CASE_SIG` for 6 or more arguments (#1954)
+* Fixed potential UB when handling non-ASCII characters in CLI args (#1943)
+
+### Improvements
+* There can be multiple calls to `GENERATE` on a single line
+* Improved `fno-except` support for platforms that do not provide shims for exception-related std functions (#1950)
+  * E.g. the Green Hills C++ compiler
+* XmlReporter now also reports test-case-level statistics (#1958)
+  * This is done via a new element, `OverallResultsCases`
+
+### Miscellaneous
+* Added `.clang-format` file to the repo (#1182, #1920)
+* Rewrote contributing docs
+  * They should explain the different levels of testing and so on much better
+
+
+## 2.12.2
+
+### Fixes
+* Fixed compilation failure if `is_range` ADL found deleted function (#1929)
+* Fixed potential UB in `CAPTURE` if the expression contained non-ASCII characters (#1925)
+
+### Improvements
+* `std::result_of` is not used if `std::invoke_result` is available (#1934)
+* JUnit reporter writes out `status` attribute for tests (#1899)
+* Suppresed clang-tidy's `hicpp-vararg` warning (#1921)
+  * Catch2 was already suppressing the `cppcoreguidelines-pro-type-vararg` alias of the warning
+
+
+## 2.12.1
+
+### Fixes
+* Vector matchers now support initializer list literals better
+
+### Improvements
+* Added support for `^` (bitwise xor) to `CHECK` and `REQUIRE`
+
+
+
+## 2.12.0
+
+### Improvements
+* Running tests in random order (`--order rand`) has been reworked significantly (#1908)
+  * Given same seed, all platforms now produce the same order
+  * Given same seed, the relative order of tests does not change if you select only a subset of them
+* Vector matchers support custom allocators (#1909)
+* `|` and `&` (bitwise or and bitwise and) are now supported in `CHECK` and `REQUIRE`
+  * The resulting type must be convertible to `bool`
+
+### Fixes
+* Fixed computation of benchmarking column widths in ConsoleReporter (#1885, #1886)
+* Suppressed clang-tidy's `cppcoreguidelines-pro-type-vararg` in assertions (#1901)
+  * It was a false positive trigered by the new warning support workaround
+* Fixed bug in test specification parser handling of OR'd patterns using escaping (#1905)
+
+### Miscellaneous
+* Worked around IBM XL's codegen bug (#1907)
+  * It would emit code for _destructors_ of temporaries in an unevaluated context
+* Improved detection of stdlib's support for `std::uncaught_exceptions` (#1911)
+
+
+
+## 2.11.3
+
+### Fixes
+* Fixed compilation error caused by lambdas in assertions under MSVC
+
+
+## 2.11.2
+
+### Improvements
+* GCC and Clang now issue warnings for suspicious code in assertions (#1880)
+  * E.g. `REQUIRE( int != unsigned int )` will now issue mixed signedness comparison warning
+  * This has always worked on MSVC, but it now also works for GCC and current Clang versions
+* Colorization of "Test filters" output should be more robust now
+* `--wait-for-keypress` now also accepts `never` as an option (#1866)
+* Reporters no longer round-off nanoseconds when reporting benchmarking results (#1876)
+* Catch2's debug break now supports iOS while using Thumb instruction set (#1862)
+* It is now possible to customize benchmark's warm-up time when running the test binary (#1844)
+  * `--benchmark-warmup-time {ms}`
+* User can now specify how Catch2 should break into debugger (#1846)
+
+### Fixes
+* Fixes missing `<random>` include in benchmarking (#1831)
+* Fixed missing `<iterator>` include in benchmarking (#1874)
+* Hidden test cases are now also tagged with `[!hide]` as per documentation (#1847)
+* Detection of whether libc provides `std::nextafter` has been improved (#1854)
+* Detection of `wmain` no longer incorrectly looks for `WIN32` macro (#1849)
+  * Now it just detects Windows platform
+* Composing already-composed matchers no longer modifies the partially-composed matcher expression
+  * This bug has been present for the last ~2 years and nobody reported it
+
+
+
+## 2.11.1
+
+### Improvements
+* Breaking into debugger is supported on iOS (#1817)
+* `google-build-using-namespace` clang-tidy warning is suppressed (#1799)
+
+### Fixes
+* Clang on Windows is no longer assumed to implement MSVC's traditional preprocessor (#1806)
+* `ObjectStorage` now behaves properly in `const` contexts (#1820)
+* `GENERATE_COPY(a, b)` now compiles properly (#1809, #1815)
+* Some more cleanups in the benchmarking support
+
+
+
+## 2.11.0
+
+### Improvements
+* JUnit reporter output now contains more details in case of failure (#1347, #1719)
+* Added SonarQube Test Data reporter (#1738)
+  * It is in a separate header, just like the TAP, Automake, and TeamCity reporters
+* `range` generator now allows floating point numbers (#1776)
+* Reworked part of internals to increase throughput
+
+
+### Fixes
+* The single header version should contain full benchmarking support (#1800)
+* `[.foo]` is now properly parsed as `[.][foo]` when used on the command line (#1798)
+* Fixed compilation of benchmarking on platforms where `steady_clock::period` is not `std::nano` (#1794)
+
+
+
+## 2.10.2
+
+### Improvements
+* Catch2 will now compile on platform where `INFINITY` is double (#1782)
+
+
+### Fixes
+* Warning suppressed during listener registration will no longer leak
+
+
+
+## 2.10.1
+
+### Improvements
+* Catch2 now guards itself against `min` and `max` macros from `windows.h` (#1772)
+* Templated tests will now compile with ICC (#1748)
+* `WithinULP` matcher now uses scientific notation for stringification (#1760)
+
+
+### Fixes
+* Templated tests no longer trigger `-Wunused-templates` (#1762)
+* Suppressed clang-analyzer false positive in context getter (#1230, #1735)
+
+
+### Miscellaneous
+* CMake no longer prohibits in-tree build when Catch2 is used as a subproject (#1773, #1774)
+
+
+
+## 2.10.0
+
+### Fixes
+* `TEMPLATE_LIST_TEST_CASE` now properly handles non-copyable and non-movable types (#1729)
+* Fixed compilation error on Solaris caused by a system header defining macro `TT` (#1722, #1723)
+* `REGISTER_ENUM` will now fail at compilation time if the registered enum is too large
+* Removed use of `std::is_same_v` in C++17 mode (#1757)
+* Fixed parsing of escaped special characters when reading test specs from a file (#1767, #1769)
+
+
+### Improvements
+* Trailing and leading whitespace in test/section specs are now ignored.
+* Writing to Android debug log now uses `__android_log_write` instead of `__android_log_print`
+* Android logging support can now be turned on/off at compile time (#1743)
+  * The toggle is `CATCH_CONFIG_ANDROID_LOGWRITE`
+* Added a generator that returns elements of a range
+  * Use via `from_range(from, to)` or `from_range(container)`
+* Added support for CRTs that do not provide `std::nextafter` (#1739)
+  * They must still provide global `nextafter{f,l,}`
+  * Enabled via `CATCH_CONFIG_GLOBAL_NEXTAFTER`
+* Special cased `Approx(inf)` not to match non-infinite values
+  * Very strictly speaking this might be a breaking change, but it should match user expectations better
+* The output of benchmarking through the Console reporter when `--benchmark-no-analysis` is set is now much simpler (#1768)
+* Added a matcher that can be used for checking an exceptions message (#1649, #1728)
+  * The matcher helper function is called `Message`
+  * The exception must publicly derive from `std::exception`
+  * The matching is done exactly, including case and whitespace
+* Added a matcher that can be used for checking relative equality of floating point numbers (#1746)
+  * Unlike `Approx`, it considers both sides when determining the allowed margin
+  * Special cases `NaN` and `INFINITY` to match user expectations
+  * The matcher helper function is called `WithinRel`
+* The ULP matcher now allows for any possible distance between the two numbers
+* The random number generators now use Catch-global instance of RNG (#1734, #1736)
+  * This means that nested random number generators actually generate different numbers
+
+
+### Miscellaneous
+* In-repo PNGs have been optimized to lower overhead of using Catch2 via git clone
+* Catch2 now uses its own implementation of the URBG concept
+  * In the future we also plan to use our own implementation of the distributions from `<random>` to provide cross-platform repeatability of random results
+
+
+
+## 2.9.2
+
+### Fixes
+* `ChunkGenerator` can now be used with chunks of size 0 (#1671)
+* Nested subsections are now run properly when specific section is run via the `-c` argument (#1670, #1673)
+* Catch2 now consistently uses `_WIN32` to detect Windows platform (#1676)
+* `TEMPLATE_LIST_TEST_CASE` now support non-default constructible type lists (#1697)
+* Fixed a crash in the XMLReporter when a benchmark throws exception during warmup (#1706)
+* Fixed a possible infinite loop in CompactReporter (#1715)
+* Fixed `-w NoTests` returning 0 even when no tests were matched (#1449, #1683, #1684)
+* Fixed matcher compilation under Obj-C++ (#1661)
+
+### Improvements
+* `RepeatGenerator` and `FixedValuesGenerator` now fail to compile when used with `bool` (#1692)
+  * Previously they would fail at runtime.
+* Catch2 now supports Android's debug logging for its debug output (#1710)
+* Catch2 now detects and configures itself for the RTX platform (#1693)
+  * You still need to pass `--benchmark-no-analysis` if you are using benchmarking under RTX
+* Removed a "storage class is not first" warning when compiling Catch2 with PGI compiler (#1717)
+
+### Miscellaneous
+* Documentation now contains indication when a specific feature was introduced (#1695)
+  * These start with Catch2 v2.3.0, (a bit over a year ago).
+  * `docs/contributing.md` has been updated to provide contributors guidance on how to add these to newly written documentation
+* Various other documentation improvements
+  * ToC fixes
+  * Documented `--order` and `--rng-seed` command line options
+  * Benchmarking documentation now clearly states that it requires opt-in
+  * Documented `CATCH_CONFIG_CPP17_OPTIONAL` and `CATCH_CONFIG_CPP17_BYTE` macros
+  * Properly documented built-in vector matchers
+  * Improved `*_THROWS_MATCHES` documentation a bit
+* CMake config file is now arch-independent even if `CMAKE_SIZEOF_VOID_P` is in CMake cache (#1660)
+* `CatchAddTests` now properly escapes `[` and `]` in test names (#1634, #1698)
+* Reverted `CatchAddTests` adding tags as CTest labels (#1658)
+  * The script broke when test names were too long
+  * Overwriting `LABELS` caused trouble for users who set them manually
+  * CMake does not let users append to `LABELS` if the test name has spaces
+
+
+## 2.9.1
+
+### Fixes
+* Fix benchmarking compilation failure in files without `CATCH_CONFIG_EXTERNAL_INTERFACES` (or implementation)
+
+
+## 2.9.0
+
+### Improvements
+* The experimental benchmarking support has been replaced by integrating Nonius code (#1616)
+  * This provides a much more featurefull micro-benchmarking support.
+  * Due to the compilation cost, it is disabled by default. See the documentation for details.
+  * As far as backwards compatibility is concerned, this feature is still considered experimental in that we might change the interface based on user feedback.
+* `WithinULP` matcher now shows the acceptable range (#1581)
+* Template test cases now support type lists (#1627)
+
+
+## 2.8.0
+
+### Improvements
+* Templated test cases no longer check whether the provided types are unique (#1628)
+  * This allows you to e.g. test over `uint32_t`, `uint64_t`, and `size_t` without compilation failing
+* The precision of floating point stringification can be modified by user (#1612, #1614)
+* We now provide `REGISTER_ENUM` convenience macro for generating `StringMaker` specializations for enums
+  * See the "String conversion" documentation for details
+* Added new set of macros for template test cases that enables the use of NTTPs (#1531, #1609)
+  * See "Test cases and sections" documentation for details
+
+### Fixes
+* `UNSCOPED_INFO` macro now has a prefixed/disabled/prefixed+disabled versions (#1611)
+* Reporting errors at startup should no longer cause a segfault under certain circumstances (#1626)
+
+
+### Miscellaneous
+* CMake will now prevent you from attempting in-tree build (#1636, #1638)
+  * Previously it would break with an obscure error message during the build step
+
+
+## 2.7.2
+
+### Improvements
+* Added an approximate vector matcher (#1499)
+
+### Fixes
+* Filters will no longer be shown if there were none
+* Fixed compilation error when using Homebrew GCC on OS X (#1588, #1589)
+* Fixed the console reporter not showing messages that start with a newline (#1455, #1470)
+* Modified JUnit reporter's output so that rng seed and filters are reported according to the JUnit schema (#1598)
+* Fixed some obscure warnings and static analysis passes
+
+### Miscellaneous
+* Various improvements to `ParseAndAddCatchTests` (#1559, #1601)
+  * When a target is parsed, it receives `ParseAndAddCatchTests_TESTS` property which summarizes found tests
+  * Fixed problem with tests not being found if the `OptionalCatchTestLauncher` variables is used
+  * Including the script will no longer forcefully modify `CMAKE_MINIMUM_REQUIRED_VERSION`
+  * CMake object libraries are ignored when parsing to avoid needless warnings
+* `CatchAddTests` now adds test's tags to their CTest labels (#1600)
+* Added basic CPack support to our build
+
+## 2.7.1
+
+### Improvements
+* Reporters now print out the filters applied to test cases (#1550, #1585)
+* Added `GENERATE_COPY` and `GENERATE_REF` macros that can use variables inside the generator expression
+  * Because of the significant danger of lifetime issues, the default `GENERATE` macro still does not allow variables
+* The `map` generator helper now deduces the mapped return type (#1576)
+
+### Fixes
+* Fixed ObjC++ compilation (#1571)
+* Fixed test tag parsing so that `[.foo]` is now parsed as `[.][foo]`.
+* Suppressed warning caused by the Windows headers defining SE codes in different manners (#1575)
+
+## 2.7.0
+
+### Improvements
+* `TEMPLATE_PRODUCT_TEST_CASE` now uses the resulting type in the name, instead of the serial number (#1544)
+* Catch2's single header is now strictly ASCII (#1542)
+* Added generator for random integral/floating point types
+  * The types are inferred within the `random` helper
+* Added back RangeGenerator (#1526)
+  * RangeGenerator returns elements within a certain range
+* Added ChunkGenerator generic transform (#1538)
+  * A ChunkGenerator returns the elements from different generator in chunks of n elements
+* Added `UNSCOPED_INFO` (#415, #983, #1522)
+  * This is a variant of `INFO` that lives until next assertion/end of the test case.
+
+
+### Fixes
+* All calls to C stdlib functions are now `std::` qualified (#1541)
+  * Code brought in from Clara was also updated.
+* Running tests will no longer open the specified output file twice (#1545)
+  * This would cause trouble when the file was not a file, but rather a named pipe
+  * Fixes the CLion/Resharper integration with Catch
+* Fixed `-Wunreachable-code` occurring with (old) ccache+cmake+clang combination (#1540)
+* Fixed `-Wdefaulted-function-deleted` warning with Clang 8 (#1537)
+* Catch2's type traits and helpers are now properly namespaced inside `Catch::` (#1548)
+* Fixed std{out,err} redirection for failing test (#1514, #1525)
+  * Somehow, this bug has been present for well over a year before it was reported
+
+
+### Contrib
+* `ParseAndAddCatchTests` now properly escapes commas in the test name
+
+
 
 ## 2.6.1
 
@@ -253,7 +782,7 @@ than `single_include/catch.hpp`.**
 * CLR objects (`T^`) can now be stringified (#1216)
   * This affects code compiled as C++/CLI
 * Added `PredicateMatcher`, a matcher that takes an arbitrary predicate function (#1236)
-  * See [documentation for details](https://github.com/catchorg/Catch2/blob/master/docs/matchers.md)
+  * See [documentation for details](https://github.com/catchorg/Catch2/blob/devel/docs/matchers.md)
 
 ### Others
 * Modified CMake-installed pkg-config to allow `#include <catch.hpp>`(#1239)
@@ -281,7 +810,7 @@ than `single_include/catch.hpp`.**
 * Added an option to warn (+ exit with error) when no tests were ran (#1158)
   * Use as `-w NoTests`
 * Added provisional support for Emscripten (#1114)
-* [Added a way to override the fallback stringifier](https://github.com/catchorg/Catch2/blob/master/docs/configuration.md#fallback-stringifier) (#1024)
+* [Added a way to override the fallback stringifier](https://github.com/catchorg/Catch2/blob/devel/docs/configuration.md#fallback-stringifier) (#1024)
   * This allows project's own stringification machinery to be easily reused for Catch
 * `Catch::Session::run()` now accepts `char const * const *`, allowing it to accept array of string literals (#1031, #1178)
   * The embedded version of Clara was bumped to v1.1.3
@@ -690,7 +1219,7 @@ Cygwin issue with `gettimeofday` - `#define` was not early enough
   * Usage of `gettimeofday` inside Catch should no longer cause compilation errors.
 * Improved `-Wparentheses` suppression for gcc (#674)
   * When compiled with gcc 4.8 or newer, the suppression is localized to assertions only
-  * Otherwise it is supressed for the whole TU
+  * Otherwise it is suppressed for the whole TU
 * Fixed test spec parser issue (with escapes in multiple names)
 
 ##### Other
@@ -773,7 +1302,7 @@ Other:
 
 ##### Other:
 * Types with overloaded `&&` operator are no longer evaluated twice when used in an assertion macro.
-* The use of `__COUNTER__` is supressed when Catch is parsed by CLion
+* The use of `__COUNTER__` is suppressed when Catch is parsed by CLion
   * This change is not active when compiling a binary
 * Approval tests can now be run on Windows
 * CMake will now warn if a file is present in the `include` folder but not is not enumerated as part of the project

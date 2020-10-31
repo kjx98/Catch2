@@ -1,7 +1,7 @@
 <a id="top"></a>
 # How to release
 
-When enough changes have accumulated, it is time to release new version of Catch. This document describes the process in doing so, that no steps are forgotten. Note that all referenced scripts can be found in the `scripts/` directory.
+When enough changes have accumulated, it is time to release new version of Catch. This document describes the process in doing so, that no steps are forgotten. Note that all referenced scripts can be found in the `tools/scripts/` directory.
 
 ## Necessary steps
 
@@ -32,7 +32,7 @@ Once a release is ready, release notes need to be written. They should summarize
 
 ### Commit and push update to GitHub
 
-After version number is incremented, single-include header is regenerated and release notes are updated, changes should be commited and pushed to GitHub.
+After version number is incremented, single-include header is regenerated and release notes are updated, changes should be committed and pushed to GitHub.
 
 
 ### Release on GitHub
@@ -42,8 +42,8 @@ Tag version and release title should be same as the new version,
 description should contain the release notes for the current release.
 Single header version of `catch.hpp` *needs* to be attached as a binary,
 as that is where the official download link links to. Preferably
-it should use linux line endings. All non-bundled reporters (Automake,
-TAP, TeamCity) should also be attached as binaries, as they might be
+it should use linux line endings. All non-bundled reporters (Automake, TAP,
+TeamCity, SonarQube) should also be attached as binaries, as they might be
 dependent on a specific version of the single-include header.
 
 Since 2.5.0, the release tag and the "binaries" (headers) should be PGP

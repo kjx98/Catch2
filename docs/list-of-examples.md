@@ -10,13 +10,13 @@
 - Fixture: [Sections](../examples/100-Fix-Section.cpp)
 - Fixture: [Class-based fixtures](../examples/110-Fix-ClassFixture.cpp)
 - BDD: [SCENARIO, GIVEN, WHEN, THEN](../examples/120-Bdd-ScenarioGivenWhenThen.cpp)
-- Report: [Catch-provided main](../examples/200-Rpt-CatchMain.cpp)
-- Report: [TeamCity reporter](../examples/207-Rpt-TeamCityReporter.cpp)
 - Listener: [Listeners](../examples/210-Evt-EventListeners.cpp)
 - Configuration: [Provide your own output streams](../examples/231-Cfg-OutputStreams.cpp)
 - Generators: [Create your own generator](../examples/300-Gen-OwnGenerator.cpp)
 - Generators: [Use map to convert types in GENERATE expression](../examples/301-Gen-MapTypeConversion.cpp)
+- Generators: [Run test with a table of input values](../examples/302-Gen-Table.cpp)
 - Generators: [Use variables in generator expressions](../examples/310-Gen-VariablesInGenerators.cpp)
+- Generators: [Use custom variable capture in generator expressions](../examples/311-Gen-CustomCapture.cpp)
 
 
 ## Planned

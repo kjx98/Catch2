@@ -6,6 +6,7 @@
 [Tag aliases](#tag-aliases)<br>
 [BDD-style test cases](#bdd-style-test-cases)<br>
 [Type parametrised test cases](#type-parametrised-test-cases)<br>
+[Signature based parametrised test cases](#signature-based-parametrised-test-cases)<br>
 
 While Catch fully supports the traditional, xUnit, style of class-based fixtures containing test case methods this is not the preferred style.
 
@@ -14,9 +15,17 @@ Instead Catch provides a powerful mechanism for nesting test case sections withi
 Test cases and sections are very easy to use in practice:
 
 * **TEST_CASE(** _test name_ \[, _tags_ \] **)**
-* **SECTION(** _section name_ **)**
+* **SECTION(** _section name_, \[, _section description_ \] **)**
 
-_test name_ and _section name_ are free form, quoted, strings. The optional _tags_ argument is a quoted string containing one or more tags enclosed in square brackets. Tags are discussed below. Test names must be unique within the Catch executable.
+
+_test name_ and _section name_ are free form, quoted, strings.
+The optional _tags_ argument is a quoted string containing one or more
+tags enclosed in square brackets, and are discussed below.
+_section description_ can be used to provide long form description
+of a section while keeping the _section name_ short for use with the
+[`-c` command line parameter](command-line.md#specify-the-section-to-run).
+
+**Test names must be unique within the Catch executable.**
 
 For examples see the [Tutorial](tutorial.md#top)
 
@@ -41,7 +50,7 @@ Tag names are not case sensitive and can contain any ASCII characters. This mean
 
 All tag names beginning with non-alphanumeric characters are reserved by Catch. Catch defines a number of "special" tags, which have meaning to the test runner itself. These special tags all begin with a symbol character. Following is a list of currently defined special tags and their meanings.
 
-* `[!hide]` or `[.]` - causes test cases to be skipped from the default list (i.e. when no test cases have been explicitly selected through tag expressions or name wildcards). The hide tag is often combined with another, user, tag (for example `[.][integration]` - so all integration tests are excluded from the default run but can be run by passing `[integration]` on the command line). As a short-cut you can combine these by simply prefixing your user tag with a `.` - e.g. `[.integration]`. Because the hide tag has evolved to have several forms, all forms are added as tags if you use one of them.
+* `[.]` - causes test cases to be skipped from the default list (i.e. when no test cases have been explicitly selected through tag expressions or name wildcards). The hide tag is often combined with another, user, tag (for example `[.][integration]` - so all integration tests are excluded from the default run but can be run by passing `[integration]` on the command line). As a short-cut you can combine these by simply prefixing your user tag with a `.` - e.g. `[.integration]`.
 
 * `[!throws]` - lets Catch know that this test is likely to throw an exception even if successful. This causes the test to be excluded when running with `-e` or `--nothrow`.
 
@@ -83,10 +92,13 @@ This macro maps onto ```TEST_CASE``` and works in the same way, except that the 
 
 These macros map onto ```SECTION```s except that the section names are the _something_s prefixed by "given: ", "when: " or "then: " respectively.
 
+* **AND_GIVEN(** _something_ **)**
 * **AND_WHEN(** _something_ **)**
 * **AND_THEN(** _something_ **)**
 
-Similar to ```WHEN``` and ```THEN``` except that the prefixes start with "and ". These are used to chain ```WHEN```s and ```THEN```s together.
+Similar to ```GIVEN```, ```WHEN``` and ```THEN``` except that the prefixes start with "and ". These are used to chain ```GIVEN```s, ```WHEN```s and ```THEN```s together.
+
+> `AND_GIVEN` was [introduced](https://github.com/catchorg/Catch2/issues/1360) in Catch 2.4.0.
 
 When any of these macros are used the console reporter recognises them and formats the test case header such that the Givens, Whens and Thens are aligned to aid readability.
 
@@ -95,10 +107,12 @@ Other than the additional prefixes and the formatting in the console reporter th
 ## Type parametrised test cases
 
 In addition to `TEST_CASE`s, Catch2 also supports test cases parametrised
-by types, in the form of `TEMPLATE_TEST_CASE` and
-`TEMPLATE_PRODUCT_TEST_CASE`.
+by types, in the form of `TEMPLATE_TEST_CASE`,
+`TEMPLATE_PRODUCT_TEST_CASE` and `TEMPLATE_LIST_TEST_CASE`.
 
 * **TEMPLATE_TEST_CASE(** _test name_ , _tags_,  _type1_, _type2_, ..., _typen_ **)**
+
+> [Introduced](https://github.com/catchorg/Catch2/issues/1437) in Catch 2.5.0.
 
 _test name_ and _tag_ are exactly the same as they are in `TEST_CASE`,
 with the difference that the tag string must be provided (however, it
@@ -150,6 +164,8 @@ TEMPLATE_TEST_CASE( "vectors can be sized and resized", "[vector][template]", in
 
 * **TEMPLATE_PRODUCT_TEST_CASE(** _test name_ , _tags_, (_template-type1_, _template-type2_, ..., _template-typen_), (_template-arg1_, _template-arg2_, ..., _template-argm_) **)**
 
+> [Introduced](https://github.com/catchorg/Catch2/issues/1468) in Catch 2.6.0.
+
 _template-type1_ through _template-typen_ is list of template template
 types which should be combined with each of _template-arg1_ through
  _template-argm_, resulting in _n * m_ test cases. Inside the test case,
@@ -190,6 +206,77 @@ TEMPLATE_PRODUCT_TEST_CASE("Product with differing arities", "[template][product
 _While there is an upper limit on the number of types you can specify
 in single `TEMPLATE_TEST_CASE` or `TEMPLATE_PRODUCT_TEST_CASE`, the limit
 is very high and should not be encountered in practice._
+
+* **TEMPLATE_LIST_TEST_CASE(** _test name_, _tags_, _type list_ **)**
+
+> [Introduced](https://github.com/catchorg/Catch2/issues/1627) in Catch 2.9.0.
+
+_type list_ is a generic list of types on which test case should be instantiated.
+List can be `std::tuple`, `boost::mpl::list`, `boost::mp11::mp_list` or anything with
+`template <typename...>` signature.
+
+This allows you to reuse the _type list_ in multiple test cases.
+
+Example:
+```cpp
+using MyTypes = std::tuple<int, char, float>;
+TEMPLATE_LIST_TEST_CASE("Template test case with test types specified inside std::tuple", "[template][list]", MyTypes)
+{
+    REQUIRE(sizeof(TestType) > 0);
+}
+```
+
+
+## Signature based parametrised test cases
+
+> [Introduced](https://github.com/catchorg/Catch2/issues/1609) in Catch 2.8.0.
+
+In addition to [type parametrised test cases](#type-parametrised-test-cases) Catch2 also supports
+signature base parametrised test cases, in form of `TEMPLATE_TEST_CASE_SIG` and `TEMPLATE_PRODUCT_TEST_CASE_SIG`.
+These test cases have similar syntax like [type parametrised test cases](#type-parametrised-test-cases), with one
+additional positional argument which specifies the signature.
+
+### Signature
+Signature has some strict rules for these tests cases to work properly:
+* signature with multiple template parameters e.g. `typename T, size_t S` must have this format in test case declaration
+  `((typename T, size_t S), T, S)`
+* signature with variadic template arguments e.g. `typename T, size_t S, typename...Ts` must have this format in test case declaration
+  `((typename T, size_t S, typename...Ts), T, S, Ts...)`
+* signature with single non type template parameter e.g. `int V` must have this format in test case declaration `((int V), V)`
+* signature with single type template parameter e.g. `typename T` should not be used as it is in fact `TEMPLATE_TEST_CASE`
+
+Currently Catch2 support up to 11 template parameters in signature
+
+### Examples
+
+* **TEMPLATE_TEST_CASE_SIG(** _test name_ , _tags_,  _signature_, _type1_, _type2_, ..., _typen_ **)**
+
+Inside `TEMPLATE_TEST_CASE_SIG` test case you can use the names of template parameters as defined in _signature_. 
+
+```cpp
+TEMPLATE_TEST_CASE_SIG("TemplateTestSig: arrays can be created from NTTP arguments", "[vector][template][nttp]",
+  ((typename T, int V), T, V), (int,5), (float,4), (std::string,15), ((std::tuple<int, float>), 6)) {
+
+    std::array<T, V> v;
+    REQUIRE(v.size() > 1);
+}
+```
+
+* **TEMPLATE_PRODUCT_TEST_CASE_SIG(** _test name_ , _tags_, _signature_, (_template-type1_, _template-type2_, ..., _template-typen_), (_template-arg1_, _template-arg2_, ..., _template-argm_) **)**
+
+```cpp
+
+template<typename T, size_t S>
+struct Bar {
+    size_t size() { return S; }
+};
+
+TEMPLATE_PRODUCT_TEST_CASE_SIG("A Template product test case with array signature", "[template][product][nttp]", ((typename T, size_t S), T, S), (std::array, Bar), ((int, 9), (float, 42))) {
+    TestType x;
+    REQUIRE(x.size() > 0);
+}
+```
+
 
 ---
 

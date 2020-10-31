@@ -1,29 +1,34 @@
 <a id="top"></a>
-![catch logo](artwork/catch2-logo-small.png)
+![Catch2 logo](data/artwork/catch2-logo-small.png)
 
 [![Github Releases](https://img.shields.io/github/release/catchorg/catch2.svg)](https://github.com/catchorg/catch2/releases)
-[![Build Status](https://travis-ci.org/catchorg/Catch2.svg?branch=master)](https://travis-ci.org/catchorg/Catch2)
-[![Build status](https://ci.appveyor.com/api/projects/status/github/catchorg/Catch2?svg=true)](https://ci.appveyor.com/project/catchorg/catch2)
-[![codecov](https://codecov.io/gh/catchorg/Catch2/branch/master/graph/badge.svg)](https://codecov.io/gh/catchorg/Catch2)
-[![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://wandbox.org/permlink/rJhfG8exsneDGleb)
+[![Build Status](https://travis-ci.org/catchorg/Catch2.svg?branch=devel)](https://travis-ci.org/catchorg/Catch2)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/catchorg/Catch2?svg=true&branch=devel)](https://ci.appveyor.com/project/catchorg/catch2)
+[![Code Coverage](https://codecov.io/gh/catchorg/Catch2/branch/devel/graph/badge.svg)](https://codecov.io/gh/catchorg/Catch2)
+[![Try online](https://img.shields.io/badge/try-online-blue.svg)](https://godbolt.org/z/9x9qoM)
 [![Join the chat in Discord: https://discord.gg/4CWS9zD](https://img.shields.io/badge/Discord-Chat!-brightgreen.svg)](https://discord.gg/4CWS9zD)
 
 
-<a href="https://github.com/catchorg/Catch2/releases/download/v2.6.1/catch.hpp">The latest version of the single header can be downloaded directly using this link</a>
+## Catch2 v3 is being developed!
 
-## Catch2 is released!
+You are on the `devel` branch, where the next major version, v3, of
+Catch2 is being developed. As it is a significant rework, you will
+find that parts of this documentation are likely still stuck on v2.
 
-If you've been using an earlier version of Catch, please see the
-Breaking Changes section of [the release notes](https://github.com/catchorg/Catch2/releases/tag/v2.0.1)
-before moving to Catch2. You might also like to read [this blog post](http://www.levelofindirection.com/journal/2017/11/3/catch2-released.html) for more details.
+For stable (and documentation-matching) version of Catch2, [go to the
+`v2.x` branch](https://github.com/catchorg/Catch2/tree/v2.x).
 
-## What's the Catch?
 
-Catch2 stands for C++ Automated Test Cases in a Header and is a
-multi-paradigm test framework for C++. which also supports Objective-C
-(and maybe C).
-It is primarily distributed as a single header file, although certain
-extensions may require additional headers.
+## What's the Catch2?
+
+Catch2 is mainly a unit testing framework for C++, but it also
+provides basic micro-benchmarking features, and simple BDD macros.
+
+Catch2's main advantage is that using it is both simple and natural.
+Tests autoregister themselves and do not have to be named with valid
+identifiers, assertions look like normal C++ code, and sections provide
+a nice way to share set-up and tear-down code in tests.
+
 
 ## How to use it
 This documentation comprises these three parts:
@@ -31,6 +36,7 @@ This documentation comprises these three parts:
 * [Why do we need yet another C++ Test Framework?](docs/why-catch.md#top)
 * [Tutorial](docs/tutorial.md#top) - getting started
 * [Reference section](docs/Readme.md#top) - all the details
+
 
 ## More
 * Issues and bugs can be raised on the [Issue tracker on GitHub](https://github.com/catchorg/Catch2/issues)
